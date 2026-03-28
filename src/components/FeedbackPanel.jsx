@@ -1,46 +1,146 @@
-export default function FeedbackPanel({ feedback }) {
+import ConfidenceIndicator from './ConfidenceIndicator';
+
+export default function FeedbackPanel({
+  feedback,
+  retryEnabled,
+  pendingRetryAttempts,
+  attemptsInSession,
+  sessionTarget,
+  onContinue,
+  onRetry,
+  onSkip,
+  loading,
+}) {
+  if (!feedback) return null;
+
   return (
-    <section className="panel feedback-panel">
-      <h2>Feedback</h2>
+    <div className="feedback-screen anim-fade-in">
+      {/* Result Card */}
+      <div className={`feedback-screen__result ${feedback.correctness ? 'feedback-screen__result--correct' : 'feedback-screen__result--incorrect'}`}>
+        <div className="feedback-screen__result-icon">
+          {feedback.correctness ? (
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--clr-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          ) : (
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--clr-error)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          )}
+        </div>
+        <h2 className="feedback-screen__result-title">
+          {feedback.correctness ? 'Well Done!' : 'Keep Trying!'}
+        </h2>
+        {feedback.xp_earned > 0 && (
+          <span className="feedback-screen__xp-badge">+{feedback.xp_earned} XP</span>
+        )}
+      </div>
 
-      {!feedback && <p>No attempt submitted yet.</p>}
-
-      {feedback && (
-        <>
-          <div className={feedback.correctness ? 'status good' : 'status bad'}>
-            {feedback.correctness ? 'Correct' : 'Needs Review'}
-          </div>
-
-          <p><strong>Detected error:</strong> {feedback.detected_error_type}</p>
-          <p><strong>Cognitive load:</strong> {feedback.cognitive_load}</p>
-          <p><strong>Inferred confidence:</strong> {feedback.inferred_confidence?.label || feedback.inferred_confidence}</p>
-          <p><strong>Confidence alignment:</strong> {feedback.confidence_alignment}</p>
-          <p><strong>Reward score:</strong> {feedback.reward_score}</p>
-          <p><strong>XP earned:</strong> {feedback.xp_earned}</p>
-          <p><strong>Confidence calibration:</strong> {feedback.confidence_calibration}</p>
-
-          <div className="feedback-block">
-            <p><strong>Explanation:</strong></p>
-            <p>{feedback.explanation || 'No explanation needed for this attempt.'}</p>
-          </div>
-
-          <div className="feedback-block">
-            <p><strong>Meta feedback:</strong></p>
-            <ul>
-              {feedback.meta_feedback?.map((msg) => (
-                <li key={msg}>{msg}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="feedback-block">
-            <p><strong>Next step:</strong> {feedback.next_step?.action}</p>
-            {feedback.next_step?.explanation && (
-              <p>{feedback.next_step.explanation}</p>
-            )}
-          </div>
-        </>
+      {/* Explanation */}
+      {feedback.explanation && (
+        <div className="feedback-screen__card">
+          <h3>Explanation</h3>
+          <p>{feedback.explanation}</p>
+        </div>
       )}
-    </section>
+
+      {/* Error Detection */}
+      {feedback.detected_error_type && feedback.detected_error_type !== 'none' && (
+        <div className="feedback-screen__card feedback-screen__card--error">
+          <h3>Error Detected</h3>
+          <p className="feedback-screen__error-type">{feedback.detected_error_type.replace(/_/g, ' ')}</p>
+        </div>
+      )}
+
+      {/* Mastery Update */}
+      {feedback.mastery_update && (
+        <div className="feedback-screen__card">
+          <h3>Mastery Update</h3>
+          <div className="feedback-screen__mastery-change">
+            <span>{(feedback.mastery_update.concept || '').replace(/_/g, ' ')}</span>
+            <div className="feedback-screen__mastery-arrow">
+              <span>{Math.round((feedback.mastery_update.previous || 0) * 100)}%</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+              </svg>
+              <span className={feedback.mastery_update.updated > feedback.mastery_update.previous ? 'text-success' : 'text-error'}>
+                {Math.round((feedback.mastery_update.updated || 0) * 100)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Meta Feedback */}
+      {feedback.meta_feedback?.length > 0 && (
+        <div className="feedback-screen__card">
+          <h3>Learning Insights</h3>
+          <ul className="feedback-screen__insights">
+            {feedback.meta_feedback.map((msg, idx) => (
+              <li key={idx}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--clr-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18h6M10 22h4M12 2a7 7 0 0 1 4 12.7V17H8v-2.3A7 7 0 0 1 12 2z" />
+                </svg>
+                {msg}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Confidence */}
+      <div className="feedback-screen__card">
+        <h3>Confidence Analysis</h3>
+        <ConfidenceIndicator
+          selfReported={feedback.inferred_confidence?.self_reported || ''}
+          inferred={feedback.inferred_confidence?.label || feedback.inferred_confidence}
+          alignment={feedback.confidence_alignment}
+        />
+        {feedback.confidence_calibration && (
+          <p className="feedback-screen__calibration">{feedback.confidence_calibration}</p>
+        )}
+      </div>
+
+      {/* Stats Row */}
+      <div className="feedback-screen__stats">
+        <div className="feedback-screen__stat">
+          <span className="feedback-screen__stat-value">{Number(feedback.reward_score || 0).toFixed(2)}</span>
+          <span className="feedback-screen__stat-label">Reward</span>
+        </div>
+        <div className="feedback-screen__stat">
+          <span className="feedback-screen__stat-value">{feedback.cognitive_load || '-'}</span>
+          <span className="feedback-screen__stat-label">Cog. Load</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="feedback-screen__actions">
+        {retryEnabled ? (
+          <>
+            <p className="feedback-screen__retry-note">
+              Try again! Attempt #{pendingRetryAttempts}
+            </p>
+            <button type="button" className="btn-primary" onClick={onRetry} disabled={loading}>
+              Retry Question
+            </button>
+            <button type="button" className="btn-ghost" onClick={onSkip} disabled={loading}>
+              Skip & Move On
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="feedback-screen__progress-note">
+              {attemptsInSession} of {sessionTarget} completed
+            </p>
+            <button type="button" className="btn-primary" onClick={onContinue} disabled={loading}>
+              Continue Challenge
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

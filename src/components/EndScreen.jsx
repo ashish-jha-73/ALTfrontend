@@ -1,55 +1,132 @@
-function renderList(items = []) {
-  if (!items.length) return 'N/A';
-  return items.join(', ');
-}
+import MasteryBar from './MasteryBar';
 
-function formatPercent(value) {
-  return Math.round((value || 0) * 100);
-}
+const conceptLabels = {
+  expressions_foundation: 'Expressions',
+  simplification_arena: 'Simplification',
+  equation_dojo: 'Equations',
+  word_problem_lab: 'Word Problems',
+};
 
 export default function EndScreen({ summary, onContinue }) {
   const mastery = summary?.mastery || {};
+  const strengths = summary?.strengths || [];
+  const weaknesses = summary?.weaknesses || [];
+  const behavioral = summary?.behavioral_insights || {};
 
   return (
-    <section className="panel end-panel">
-      <h2>Topic Summary</h2>
+    <div className="end-screen anim-fade-in">
+      {/* Hero */}
+      <div className="end-screen__hero">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--clr-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 6 9 6 9zM18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 18 9 18 9z" />
+          <path d="M4 22h16" />
+          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+        </svg>
+        <h2 className="end-screen__title">Session Complete!</h2>
+        <p className="end-screen__subtitle">Here's how you performed</p>
+      </div>
 
-      <div className="score-strip">
-        <div>
-          <p>Total XP</p>
-          <strong>{summary?.xp || 0}</strong>
+      {/* Score Cards */}
+      <div className="end-screen__scores">
+        <div className="end-screen__score-card end-screen__score-card--xp">
+          <span className="end-screen__score-value">{summary?.xp || 0}</span>
+          <span className="end-screen__score-label">Total XP</span>
         </div>
-        <div>
-          <p>Total Score</p>
-          <strong>{summary?.total_score || 0}</strong>
+        <div className="end-screen__score-card end-screen__score-card--score">
+          <span className="end-screen__score-value">{summary?.total_score || 0}</span>
+          <span className="end-screen__score-label">Total Score</span>
         </div>
       </div>
 
-      <div className="feedback-block">
-        <p><strong>Strengths:</strong> {renderList(summary?.strengths)}</p>
-        <p><strong>Weaknesses:</strong> {renderList(summary?.weaknesses)}</p>
+      {/* Mastery Bars */}
+      <div className="end-screen__card">
+        <h3>Concept Mastery</h3>
+        <div className="end-screen__mastery-list">
+          {Object.entries(mastery).map(([concept, value]) => (
+            <MasteryBar
+              key={concept}
+              label={conceptLabels[concept] || concept.replace(/_/g, ' ')}
+              value={value}
+              max={1}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="bars">
-        {Object.keys(mastery).map((concept) => (
-          <div key={concept} className="bar-row">
-            <span>{concept}</span>
-            <div className="bar-track">
-              <div className="bar-fill" style={{ width: `${formatPercent(mastery[concept])}%` }} />
+      {/* Strengths & Weaknesses */}
+      <div className="end-screen__two-col">
+        <div className="end-screen__card end-screen__card--strengths">
+          <h3>Strengths</h3>
+          {strengths.length > 0 ? (
+            <ul>
+              {strengths.map((s) => (
+                <li key={s}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--clr-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  {(conceptLabels[s] || s).replace(/_/g, ' ')}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="end-screen__empty">Keep practicing!</p>
+          )}
+        </div>
+        <div className="end-screen__card end-screen__card--weaknesses">
+          <h3>Areas to Improve</h3>
+          {weaknesses.length > 0 ? (
+            <ul>
+              {weaknesses.map((w) => (
+                <li key={w}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--clr-warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  {(conceptLabels[w] || w).replace(/_/g, ' ')}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="end-screen__empty">No weaknesses detected!</p>
+          )}
+        </div>
+      </div>
+
+      {/* Behavioral Profile */}
+      <div className="end-screen__card">
+        <h3>Behavioral Profile</h3>
+        <div className="end-screen__behavior-grid">
+          <div className="end-screen__behavior-item">
+            <span className="end-screen__behavior-label">Persistence</span>
+            <div className="end-screen__behavior-bar">
+              <div className="end-screen__behavior-fill" style={{ width: `${Math.round((behavioral.persistence || 0) * 100)}%`, background: 'var(--clr-success)' }} />
             </div>
-            <strong>{formatPercent(mastery[concept])}%</strong>
+            <span className="end-screen__behavior-value">{Math.round((behavioral.persistence || 0) * 100)}%</span>
           </div>
-        ))}
+          <div className="end-screen__behavior-item">
+            <span className="end-screen__behavior-label">Guessing</span>
+            <div className="end-screen__behavior-bar">
+              <div className="end-screen__behavior-fill" style={{ width: `${Math.round((behavioral.guessing_tendency || 0) * 100)}%`, background: 'var(--clr-error)' }} />
+            </div>
+            <span className="end-screen__behavior-value">{Math.round((behavioral.guessing_tendency || 0) * 100)}%</span>
+          </div>
+          <div className="end-screen__behavior-item">
+            <span className="end-screen__behavior-label">Hint Dependency</span>
+            <div className="end-screen__behavior-bar">
+              <div className="end-screen__behavior-fill" style={{ width: `${Math.round((behavioral.hint_dependency || 0) * 100)}%`, background: 'var(--clr-warning)' }} />
+            </div>
+            <span className="end-screen__behavior-value">{Math.round((behavioral.hint_dependency || 0) * 100)}%</span>
+          </div>
+        </div>
       </div>
 
-      <div className="feedback-block">
-        <p><strong>Behavioral Profile</strong></p>
-        <p>Guessing tendency: {Number(summary?.behavioral_insights?.guessing_tendency || 0).toFixed(2)}</p>
-        <p>Persistence: {Number(summary?.behavioral_insights?.persistence || 0).toFixed(2)}</p>
-        <p>Hint dependency: {Number(summary?.behavioral_insights?.hint_dependency || 0).toFixed(2)}</p>
-      </div>
-
-      <button type="button" className="btn start-btn" onClick={onContinue}>Continue Learning</button>
-    </section>
+      {/* Continue */}
+      <button type="button" className="btn-primary" onClick={onContinue}>
+        Continue Learning
+      </button>
+    </div>
   );
 }

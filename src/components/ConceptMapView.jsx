@@ -1,72 +1,132 @@
+import MasteryBar from './MasteryBar';
+
 function formatPercent(value) {
   return Math.round((value || 0) * 100);
 }
 
+function getStatusClass(status) {
+  if (status === 'completed') return 'concept-map-node--completed';
+  if (status === 'unlocked') return 'concept-map-node--unlocked';
+  return 'concept-map-node--locked';
+}
+
+function getStatusLabel(status) {
+  if (status === 'completed') return 'Mastered';
+  if (status === 'unlocked') return 'In Progress';
+  return 'Locked';
+}
+
+function getStatusIcon(status) {
+  if (status === 'completed') {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--clr-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+        <polyline points="22 4 12 14.01 9 11.01" />
+      </svg>
+    );
+  }
+  if (status === 'unlocked') {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--clr-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--clr-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
 export default function ConceptMapView({ conceptMap, onStart }) {
   const nodes = conceptMap?.nodes || [];
-  const connectors = nodes.slice(0, -1);
+  const xp = conceptMap?.xp || 0;
+  const totalScore = conceptMap?.total_score || 0;
 
   return (
-    <section className="panel map-panel">
-      <div className="map-header">
-        <h2>Concept Map</h2>
-        <button type="button" className="btn start-btn" onClick={onStart}>Start Adaptive Mission</button>
+    <div className="concept-map anim-fade-in">
+      <div className="concept-map__hero">
+        <div className="concept-map__hero-text">
+          <h2 className="concept-map__title">Your Learning Journey</h2>
+          <p className="concept-map__subtitle">
+            Master each concept to unlock the next. Reach 70% mastery to progress.
+          </p>
+        </div>
+        <button type="button" className="concept-map__start-btn" onClick={onStart}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+          Start Mission
+        </button>
       </div>
 
-      <p className="subtext">Unlock path: Expressions to Simplification to Equations to Word Problems</p>
-
-      <div className="map-graph">
-        {connectors.length > 0 && (
-          <svg className="map-connectors" viewBox="0 0 1000 80" preserveAspectRatio="none" aria-hidden="true">
-            {connectors.map((node, idx) => {
-              const segmentWidth = 1000 / nodes.length;
-              const x1 = segmentWidth * idx + segmentWidth * 0.65;
-              const x2 = segmentWidth * (idx + 1) + segmentWidth * 0.35;
-              const y = 40;
-              const color = node.status === 'completed' ? '#2b9b57' : '#5fa7ca';
-
-              return (
-                <g key={`${node.id}-edge`}>
-                  <path
-                    d={`M ${x1} ${y} C ${x1 + 28} ${y - 12}, ${x2 - 28} ${y + 12}, ${x2} ${y}`}
-                    stroke={color}
-                    strokeWidth="3"
-                    fill="none"
-                    strokeLinecap="round"
-                    opacity="0.9"
-                  />
-                  <circle cx={x2} cy={y} r="3.5" fill={color} />
-                </g>
-              );
-            })}
+      {/* Score Cards */}
+      <div className="concept-map__scores">
+        <div className="concept-map__score-card">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--clr-primary)" stroke="none">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
-        )}
+          <div>
+            <span className="concept-map__score-value">{xp}</span>
+            <span className="concept-map__score-label">Experience Points</span>
+          </div>
+        </div>
+        <div className="concept-map__score-card">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--clr-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 6 9 6 9zM18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 18 9 18 9z" />
+            <path d="M4 22h16" />
+            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+          </svg>
+          <div>
+            <span className="concept-map__score-value">{totalScore}</span>
+            <span className="concept-map__score-label">Total Score</span>
+          </div>
+        </div>
+      </div>
 
-        <div className="node-row">
-        {nodes.map((node) => (
-          <div key={node.id} className={`concept-node ${node.status}`}>
-            <h3>{node.label}</h3>
-            <p>Status: {node.status}</p>
-            <p>Level: {node.current_level}</p>
-            <div className="bar-track">
-              <div className="bar-fill" style={{ width: `${formatPercent(node.mastery)}%` }} />
+      {/* Concept Path */}
+      <div className="concept-map__path">
+        {nodes.map((node, idx) => (
+          <div key={node.id} className="concept-map__step">
+            {idx > 0 && (
+              <div className={`concept-map__connector ${nodes[idx - 1].status === 'completed' ? 'concept-map__connector--active' : ''}`}>
+                <svg width="2" height="40" viewBox="0 0 2 40">
+                  <line x1="1" y1="0" x2="1" y2="40" stroke="currentColor" strokeWidth="2" strokeDasharray={nodes[idx - 1].status === 'completed' ? 'none' : '4 4'} />
+                </svg>
+              </div>
+            )}
+            <div className={`concept-map-node ${getStatusClass(node.status)}`}>
+              <div className="concept-map-node__header">
+                <div className="concept-map-node__icon">
+                  {getStatusIcon(node.status)}
+                </div>
+                <div className="concept-map-node__info">
+                  <h3 className="concept-map-node__name">{node.label}</h3>
+                  <div className="concept-map-node__meta">
+                    <span className={`concept-map-node__status-badge concept-map-node__status-badge--${node.status}`}>
+                      {getStatusLabel(node.status)}
+                    </span>
+                    <span className="concept-map-node__level">Level {node.current_level}</span>
+                  </div>
+                </div>
+                <span className="concept-map-node__percent">{formatPercent(node.mastery)}%</span>
+              </div>
+              <MasteryBar
+                value={node.mastery || 0}
+                max={1}
+                showLabel={false}
+                showPercent={false}
+                size="sm"
+              />
             </div>
-            <small>Mastery {formatPercent(node.mastery)}%</small>
           </div>
         ))}
-        </div>
       </div>
-
-      <div className="score-strip">
-        <div>
-          <p>XP</p>
-          <strong>{conceptMap?.xp || 0}</strong>
-        </div>
-        <div>
-          <p>Total Score</p>
-          <strong>{conceptMap?.total_score || 0}</strong>
-        </div>
-      </div>
-    </section>
+    </div>
   );
 }

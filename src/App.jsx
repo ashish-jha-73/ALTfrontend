@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import AuthScreen from './components/AuthScreen';
 import ConceptMapView from './components/ConceptMapView';
@@ -6,6 +6,9 @@ import QuestionScreen from './components/QuestionScreen';
 import LessonScreen from './components/LessonScreen';
 import FeedbackPanel from './components/FeedbackPanel';
 import EndScreen from './components/EndScreen';
+import MasteryPopup from './components/MasteryPopup';
+import Sidebar from './components/layout/Sidebar';
+import Header from './components/layout/Header';
 import {
   completeLesson,
   fetchConceptMap,
@@ -34,7 +37,10 @@ function App() {
   const [retryEnabled, setRetryEnabled] = useState(false);
   const [pendingRetryAttempts, setPendingRetryAttempts] = useState(1);
   const [attemptsInSession, setAttemptsInSession] = useState(0);
+  const [hintsUsedSession, setHintsUsedSession] = useState(0);
+  const [sessionStartTime] = useState(Date.now());
   const [xpToast, setXpToast] = useState({ visible: false, amount: 0, key: 0 });
+  const [masteryPopup, setMasteryPopup] = useState({ show: false, concept: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -66,7 +72,7 @@ function App() {
     if (!xpToast.visible) return undefined;
     const timer = setTimeout(() => {
       setXpToast((prev) => ({ ...prev, visible: false }));
-    }, 1400);
+    }, 2000);
     return () => clearTimeout(timer);
   }, [xpToast]);
 
@@ -111,7 +117,6 @@ function App() {
   useEffect(() => {
     async function bootstrapAfterAuth() {
       if (!isAuthenticated || !userId) return;
-
       try {
         setLoading(true);
         setError('');
@@ -126,7 +131,6 @@ function App() {
         setLoading(false);
       }
     }
-
     bootstrapAfterAuth();
   }, [isAuthenticated, userId]);
 
@@ -134,15 +138,12 @@ function App() {
     try {
       setLoading(true);
       setError('');
-
       const payload = mode === 'register'
         ? { name, username, password }
         : { username, password };
-
       const authData = mode === 'register'
         ? await registerUser(payload)
         : await loginUser(payload);
-
       saveAuth(authData);
     } catch (err) {
       setError(err.message);
@@ -155,6 +156,7 @@ function App() {
     try {
       setLoading(true);
       setError('');
+      setFeedback(null);
       await loadNextQuestion(userId);
       setScreen('question');
     } catch (err) {
@@ -165,9 +167,7 @@ function App() {
   }
 
   async function handleSubmit(payload) {
-    if (questionPayload?.activity_type !== 'question') {
-      return;
-    }
+    if (questionPayload?.activity_type !== 'question') return;
 
     try {
       setLoading(true);
@@ -187,17 +187,24 @@ function App() {
       });
 
       setFeedback(result);
+      setHintsUsedSession((prev) => prev + (payload.used_hints || 0));
+
       if ((result.xp_earned || 0) > 0) {
-        setXpToast({
-          visible: true,
-          amount: result.xp_earned,
-          key: Date.now(),
-        });
+        setXpToast({ visible: true, amount: result.xp_earned, key: Date.now() });
       }
+
       const activeUserId = result.user_id || userId;
+      const prevCompleted = progress?.progress?.completed_concepts || [];
 
       await loadProgress(activeUserId);
       await loadConceptMap(activeUserId);
+
+      // Check for newly completed concepts
+      const newCompleted = progress?.progress?.completed_concepts || [];
+      const justMastered = newCompleted.find((c) => !prevCompleted.includes(c));
+      if (justMastered) {
+        setMasteryPopup({ show: true, concept: justMastered.replace(/_/g, ' ') });
+      }
 
       if (!result.correctness && !payload.skipped) {
         setRetryEnabled(true);
@@ -229,13 +236,7 @@ function App() {
     try {
       setLoading(true);
       setError('');
-
-      await completeLesson({
-        user_id: userId,
-        user_name: userName,
-        lesson_key: lessonKey,
-      });
-
+      await completeLesson({ user_id: userId, user_name: userName, lesson_key: lessonKey });
       await loadNextQuestion(userId);
       setScreen('question');
     } catch (err) {
@@ -245,12 +246,11 @@ function App() {
     }
   }
 
-  async function continueAfterFeedback() {
+  function continueAfterFeedback() {
     if (retryEnabled) {
       setScreen('question');
       return;
     }
-
     setScreen('question');
   }
 
@@ -267,33 +267,119 @@ function App() {
 
   async function continueAfterEnd() {
     setAttemptsInSession(0);
+    setHintsUsedSession(0);
     setSummary(null);
+    setFeedback(null);
     setScreen('map');
     await loadConceptMap(userId);
   }
 
-  return (
-    <main className="app-shell">
-      <header className="hero">
-        <h1>Algebra Quest: Adaptive Tutor Game</h1>
-        <p>Concept unlocks, level progression, RL-style adaptation, and personalized tutoring.</p>
-        {isAuthenticated && (
-          <div className="auth-chip-row">
-            <span className="auth-chip">Signed in as {userName}</span>
-            <button type="button" className="btn" onClick={clearAuth}>Logout</button>
+  const closeMasteryPopup = useCallback(() => {
+    setMasteryPopup({ show: false, concept: '' });
+  }, []);
+
+  const timeSpent = Math.floor((Date.now() - sessionStartTime) / 1000);
+
+  // Auth screen — full page, no sidebar
+  if (!isAuthenticated) {
+    return (
+      <div className="app-shell app-shell--auth">
+        {error && (
+          <div className="error-banner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{error}</span>
+            <button type="button" onClick={() => setError('')}>&times;</button>
           </div>
         )}
-      </header>
+        <AuthScreen onLogin={handleAuth} loading={loading} />
+      </div>
+    );
+  }
 
-      {error && <p className="error-banner">{error}</p>}
+  // Main app layout with sidebar
+  return (
+    <div className="app-shell">
+      <Sidebar
+        userName={userName}
+        progress={progress}
+        conceptMap={conceptMap}
+        attemptsInSession={attemptsInSession}
+        hintsUsedSession={hintsUsedSession}
+        timeSpentSession={timeSpent}
+        currentScreen={screen}
+        onNavigateMap={() => setScreen('map')}
+        onLogout={clearAuth}
+      />
 
-      {!isAuthenticated && (
-        <div className="layout-grid">
-          <AuthScreen onLogin={handleAuth} loading={loading} />
+      <div className="main-area">
+        <Header
+          progress={progress}
+          conceptMap={conceptMap}
+          attemptsInSession={attemptsInSession}
+          sessionTarget={SESSION_TARGET_QUESTIONS}
+          screen={screen}
+          questionPayload={questionPayload}
+        />
+
+        <div className="content">
+          {error && (
+            <div className="error-banner">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{error}</span>
+              <button type="button" onClick={() => setError('')}>&times;</button>
+            </div>
+          )}
+
+          {screen === 'map' && (
+            <ConceptMapView conceptMap={conceptMap} onStart={startMission} />
+          )}
+
+          {screen === 'question' && (
+            questionPayload?.activity_type === 'lesson' ? (
+              <LessonScreen
+                payload={questionPayload}
+                loading={loading}
+                onComplete={handleCompleteLesson}
+                onBackToMap={() => setScreen('map')}
+              />
+            ) : (
+              <QuestionScreen
+                payload={questionPayload}
+                onSubmit={handleSubmit}
+                loading={loading}
+                initialAttempts={pendingRetryAttempts}
+                feedback={feedback}
+                onBackToMap={() => setScreen('map')}
+              />
+            )
+          )}
+
+          {screen === 'feedback' && (
+            <FeedbackPanel
+              feedback={feedback}
+              retryEnabled={retryEnabled}
+              pendingRetryAttempts={pendingRetryAttempts}
+              attemptsInSession={attemptsInSession}
+              sessionTarget={SESSION_TARGET_QUESTIONS}
+              onContinue={continueAfterFeedback}
+              onRetry={continueAfterFeedback}
+              onSkip={skipFromNeedReview}
+              loading={loading}
+            />
+          )}
+
+          {screen === 'end' && (
+            <EndScreen summary={summary} onContinue={continueAfterEnd} />
+          )}
         </div>
-      )}
+      </div>
 
-      {isAuthenticated && xpToast.visible && (
+      {/* XP Toast */}
+      {xpToast.visible && (
         <div key={xpToast.key} className="xp-toast-wrap" aria-live="polite">
           <div className="xp-toast">+{xpToast.amount} XP</div>
           <div className="xp-burst" aria-hidden="true">
@@ -307,85 +393,13 @@ function App() {
         </div>
       )}
 
-      {isAuthenticated && (
-      <div className="layout-grid">
-        {screen === 'map' && (
-          <>
-            <ConceptMapView conceptMap={conceptMap} onStart={startMission} />
-            <FeedbackPanel feedback={feedback} />
-          </>
-        )}
-
-        {screen === 'question' && (
-          <>
-            {questionPayload?.activity_type === 'lesson' ? (
-              <LessonScreen
-                payload={questionPayload}
-                loading={loading}
-                onComplete={handleCompleteLesson}
-                onBackToMap={() => setScreen('map')}
-              />
-            ) : (
-              <QuestionScreen
-                payload={questionPayload}
-                onSubmit={handleSubmit}
-                loading={loading}
-                initialAttempts={pendingRetryAttempts}
-                onBackToMap={() => setScreen('map')}
-              />
-            )}
-            <FeedbackPanel feedback={feedback} />
-          </>
-        )}
-
-        {screen === 'feedback' && (
-          <>
-            <FeedbackPanel feedback={feedback} />
-            <section className="panel continue-panel">
-              <h2>{retryEnabled ? 'Need Review' : 'Next Move'}</h2>
-              {retryEnabled ? (
-                <>
-                  <p>Your previous answer needs review. Retry controls are available here.</p>
-                  <p>Next retry attempt number: {pendingRetryAttempts}</p>
-                  <div className="action-row">
-                    <button type="button" className="btn submit" onClick={continueAfterFeedback} disabled={loading}>
-                      Retry This Question
-                    </button>
-                    <button type="button" className="btn skip" onClick={skipFromNeedReview} disabled={loading}>
-                      Skip and Move On
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p>Attempt {attemptsInSession} of {SESSION_TARGET_QUESTIONS} completed.</p>
-                  <p>Concept map and learner model have been updated.</p>
-                  <button type="button" className="btn submit" onClick={continueAfterFeedback}>Continue Challenge</button>
-                </>
-              )}
-            </section>
-          </>
-        )}
-
-        {screen === 'end' && (
-          <EndScreen summary={summary} onContinue={continueAfterEnd} />
-        )}
-
-        <section className="panel stats-panel">
-          <h2>Live Learner State</h2>
-          <p><strong>Current concept:</strong> {progress?.progress?.current_concept || '-'}</p>
-          <p><strong>Unlocked concepts:</strong> {(progress?.progress?.unlocked_concepts || []).join(', ') || '-'}</p>
-          <p><strong>Completed concepts:</strong> {(progress?.progress?.completed_concepts || []).join(', ') || '-'}</p>
-          <p><strong>Cognitive load:</strong> {Number(progress?.learner_model?.cognitive_state?.load_score || 0).toFixed(2)}</p>
-          <p><strong>Fatigue level:</strong> {Number(progress?.learner_model?.cognitive_state?.fatigue_level || 0).toFixed(2)}</p>
-          <p><strong>Total retries:</strong> {progress?.learner_model?.evaluation_matrix?.total_retries || 0}</p>
-          <p><strong>Total skips:</strong> {progress?.learner_model?.evaluation_matrix?.total_skips || 0}</p>
-          <p><strong>Retry success rate:</strong> {Math.round((progress?.learner_model?.evaluation_matrix?.retry_success_rate || 0) * 100)}%</p>
-          <p><strong>Skip rate:</strong> {Math.round((progress?.learner_model?.evaluation_matrix?.skip_rate || 0) * 100)}%</p>
-        </section>
-      </div>
-      )}
-    </main>
+      {/* Mastery Popup */}
+      <MasteryPopup
+        conceptName={masteryPopup.concept}
+        show={masteryPopup.show}
+        onClose={closeMasteryPopup}
+      />
+    </div>
   );
 }
 
