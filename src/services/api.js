@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://altbackend.onrender.com/';
 let authToken = '';
 
 export function setAuthToken(token) {
@@ -55,7 +55,7 @@ export async function fetchNextQuestion({ userId, userName }) {
 export async function submitAttempt(payload) {
   return request('/attempt', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringifyPro(payload),
   });
 }
 
@@ -65,7 +65,7 @@ export async function completeLesson(payload) {
     body: JSON.stringify(payload),
   });
 }
-
+Pro
 export async function fetchConceptMap({ userId, userName }) {
   const params = new URLSearchParams();
   if (userId) params.set('user_id', userId);
