@@ -79,3 +79,20 @@ export async function fetchSessionSummary({ userId, userName }) {
   if (userName) params.set('user_name', userName);
   return request(`/session-summary?${params.toString()}`);
 }
+
+export async function fetchDiagnostic() {
+  return request('/diagnostic');
+}
+
+export async function submitDiagnostic(answers) {
+  return request('/diagnostic', {
+    method: 'POST',
+    body: JSON.stringify({ answers }),
+  });
+}
+
+export async function fetchTeachingContent({ concept }) {
+  const params = new URLSearchParams();
+  if (concept) params.set('concept', concept);
+  return request(`/teaching-content?${params.toString()}`);
+}

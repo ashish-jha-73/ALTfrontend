@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import AuthScreen from './components/AuthScreen';
+import DiagnosticScreen from './components/DiagnosticScreen';
+import TeachingCard from './components/TeachingCard';
 import ConceptMapView from './components/ConceptMapView';
 import QuestionScreen from './components/QuestionScreen';
 import LessonScreen from './components/LessonScreen';
@@ -12,13 +14,16 @@ import Header from './components/layout/Header';
 import {
   completeLesson,
   fetchConceptMap,
+  fetchDiagnostic,
   fetchNextQuestion,
   fetchProgress,
   fetchSessionSummary,
+  fetchTeachingContent,
   loginUser,
   registerUser,
   setAuthToken,
   submitAttempt,
+  submitDiagnostic,
 } from './services/api';
 
 const AUTH_STORAGE_KEY = 'als_auth';
@@ -41,6 +46,12 @@ function App() {
   const [sessionStartTime] = useState(Date.now());
   const [xpToast, setXpToast] = useState({ visible: false, amount: 0, key: 0 });
   const [masteryPopup, setMasteryPopup] = useState({ show: false, concept: '' });
+  const [diagnosticQuestions, setDiagnosticQuestions] = useState(null);
+  const [diagnosticResult, setDiagnosticResult] = useState(null);
+  const [diagnosticCompleted, setDiagnosticCompleted] = useState(false);
+  const [learnerLevel, setLearnerLevel] = useState(0);
+  const [teachingContext, setTeachingContext] = useState(null);
+  const [showTeaching, setShowTeaching] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -122,6 +133,22 @@ function App() {
         setError('');
         const id = await loadProgress(userId);
         await loadConceptMap(id);
+
+        // Check if diagnostic is needed
+        try {
+          const diagData = await fetchDiagnostic();
+          if (diagData.diagnostic_completed) {
+            setDiagnosticCompleted(true);
+            setLearnerLevel(diagData.learner_level || 1);
+          } else {
+            setDiagnosticQuestions(diagData.questions);
+            setDiagnosticCompleted(false);
+            setScreen('diagnostic');
+          }
+        } catch {
+          // If diagnostic endpoint fails, skip it
+          setDiagnosticCompleted(true);
+        }
       } catch (err) {
         if ((err.message || '').includes('token')) {
           clearAuth();
@@ -152,13 +179,68 @@ function App() {
     }
   }
 
+  async function handleDiagnosticSubmit(answers) {
+    try {
+      setLoading(true);
+      setError('');
+      const result = await submitDiagnostic(answers);
+      setDiagnosticResult(result);
+      setDiagnosticCompleted(true);
+      setLearnerLevel(result.learner_level);
+      // Refresh progress after diagnostic
+      await loadProgress(userId);
+      await loadConceptMap(userId);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleDiagnosticContinue() {
+    setScreen('map');
+    setDiagnosticResult(null);
+  }
+
+  async function handleTeachingComplete() {
+    setShowTeaching(false);
+    setTeachingContext(null);
+    // Proceed to question
+    try {
+      setLoading(true);
+      await loadNextQuestion(userId);
+      setScreen('question');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function startMission() {
     try {
       setLoading(true);
       setError('');
       setFeedback(null);
+
+      // Fetch teaching context to decide if teaching card should show
+      try {
+        const teachCtx = await fetchTeachingContent({
+          concept: progress?.progress?.current_concept || 'expressions_foundation',
+        });
+        setTeachingContext(teachCtx);
+        setLearnerLevel(teachCtx.learner_level || learnerLevel || 1);
+      } catch {
+        // If teaching endpoint fails, skip teaching card
+        setTeachingContext(null);
+      }
+
       await loadNextQuestion(userId);
-      setScreen('question');
+
+      // Show teaching first for lessons or if this is a new concept session
+      if (!showTeaching) {
+        setScreen('question');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -332,6 +414,43 @@ function App() {
               <span>{error}</span>
               <button type="button" onClick={() => setError('')}>&times;</button>
             </div>
+          )}
+
+          {/* Diagnostic Screen */}
+          {screen === 'diagnostic' && !diagnosticCompleted && diagnosticQuestions && (
+            <DiagnosticScreen
+              questions={diagnosticQuestions}
+              onSubmit={handleDiagnosticSubmit}
+              loading={loading}
+              result={null}
+            />
+          )}
+
+          {screen === 'diagnostic' && diagnosticCompleted && diagnosticResult && (
+            <DiagnosticScreen
+              questions={diagnosticQuestions}
+              onSubmit={handleDiagnosticSubmit}
+              loading={loading}
+              result={diagnosticResult}
+            />
+          )}
+
+          {screen === 'diagnostic' && diagnosticCompleted && diagnosticResult && (
+            <div style={{ textAlign: 'center', marginTop: 'var(--sp-4)' }}>
+              <button type="button" className="btn-primary" onClick={handleDiagnosticContinue}>
+                Start Learning
+              </button>
+            </div>
+          )}
+
+          {/* Teaching Card (shown before questions when appropriate) */}
+          {screen === 'teaching' && teachingContext && (
+            <TeachingCard
+              concept={teachingContext.concept}
+              learnerLevel={teachingContext.learner_level || learnerLevel}
+              adaptiveHint={teachingContext.adaptive_hint}
+              onComplete={handleTeachingComplete}
+            />
           )}
 
           {screen === 'map' && (
