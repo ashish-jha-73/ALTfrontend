@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://altbackend.onrender.com/';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 let authToken = '';
 
 export function setAuthToken(token) {
