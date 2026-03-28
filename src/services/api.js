@@ -55,7 +55,7 @@ export async function fetchNextQuestion({ userId, userName }) {
 export async function submitAttempt(payload) {
   return request('/attempt', {
     method: 'POST',
-    body: JSON.stringifyPro(payload),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -65,7 +65,7 @@ export async function completeLesson(payload) {
     body: JSON.stringify(payload),
   });
 }
-Pro
+
 export async function fetchConceptMap({ userId, userName }) {
   const params = new URLSearchParams();
   if (userId) params.set('user_id', userId);
