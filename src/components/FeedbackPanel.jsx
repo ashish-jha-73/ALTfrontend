@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import ConfidenceIndicator from './ConfidenceIndicator';
 
 export default function FeedbackPanel({
@@ -10,12 +11,43 @@ export default function FeedbackPanel({
   onRetry,
   onSkip,
   loading,
+  showStats,
 }) {
   if (!feedback) return null;
+  const [localShowStats, setLocalShowStats] = useState(true);
+
+  useEffect(() => {
+    if (typeof showStats !== 'undefined') return; 
+    try {
+      const v = typeof window !== 'undefined' && window.localStorage.getItem('feedback_show_stats');
+      setLocalShowStats(v === null ? true : v === '1');
+    } catch (e) {
+    }
+  }, [showStats]);
+
+  const effectiveShowStats = typeof showStats !== 'undefined' ? showStats : localShowStats;
+
+  function toggleLocalShowStats() {
+    const next = !localShowStats;
+    setLocalShowStats(next);
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem('feedback_show_stats', next ? '1' : '0');
+    } catch (e) {
+    }
+  }
 
   return (
     <div className="feedback-screen anim-fade-in">
-      {/* Result Card */}
+      {}
+      {typeof showStats === 'undefined' && (
+        <div className="feedback-screen__toggle" style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 12px' }}>
+          <label style={{ cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input type="checkbox" checked={localShowStats} onChange={toggleLocalShowStats} />
+            <span>Show stats</span>
+          </label>
+        </div>
+      )}
+      {}
       <div className={`feedback-screen__result ${feedback.correctness ? 'feedback-screen__result--correct' : 'feedback-screen__result--incorrect'}`}>
         <div className="feedback-screen__result-icon">
           {feedback.correctness ? (
@@ -104,17 +136,19 @@ export default function FeedbackPanel({
         )}
       </div>
 
-      {/* Stats Row */}
-      <div className="feedback-screen__stats">
-        <div className="feedback-screen__stat">
-          <span className="feedback-screen__stat-value">{Number(feedback.reward_score || 0).toFixed(2)}</span>
-          <span className="feedback-screen__stat-label">Reward</span>
+      {/* Stats Row (optional) */}
+      {showStats && (
+        <div className="feedback-screen__stats">
+          <div className="feedback-screen__stat">
+            <span className="feedback-screen__stat-value">{Number(feedback.reward_score || 0).toFixed(2)}</span>
+            <span className="feedback-screen__stat-label">Reward</span>
+          </div>
+          <div className="feedback-screen__stat">
+            <span className="feedback-screen__stat-value">{feedback.cognitive_load || '-'}</span>
+            <span className="feedback-screen__stat-label">Cog. Load</span>
+          </div>
         </div>
-        <div className="feedback-screen__stat">
-          <span className="feedback-screen__stat-value">{feedback.cognitive_load || '-'}</span>
-          <span className="feedback-screen__stat-label">Cog. Load</span>
-        </div>
-      </div>
+      )}
 
       {/* Actions */}
       <div className="feedback-screen__actions">
