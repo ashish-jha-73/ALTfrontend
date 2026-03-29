@@ -86,6 +86,7 @@ export default function QuestionScreen({
   const renderQuestionType = () => {
     switch (question.question_type) {
       case 'fill_blank':
+      case 'fill_in_the_blank':
         return (
           <FillBlankComponent
             questionText={question.question_text}
