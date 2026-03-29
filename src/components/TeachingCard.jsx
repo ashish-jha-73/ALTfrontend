@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import teachingContent from '../data/teachingContent';
+import videoLinks from '../data/videoLinks';
 
 function VisualBlock({ visual }) {
   if (!visual) return null;
@@ -104,6 +105,18 @@ export default function TeachingCard({ concept, learnerLevel, adaptiveHint, onCo
       <div className="teaching-card anim-fade-in">
         {renderAdaptiveHint()}
 
+        {/* If not confident: show topic videos */}
+        {videoLinks[concept] && (
+          <div className="teaching-card__videos">
+            <strong>If not confident — watch:</strong>
+            <ul>
+              {videoLinks[concept].map((v, i) => (
+                <li key={i}><a href={v.url} target="_blank" rel="noopener noreferrer">{v.title}</a></li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="teaching-card__header">
           <span className="teaching-card__badge">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--clr-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -150,6 +163,17 @@ export default function TeachingCard({ concept, learnerLevel, adaptiveHint, onCo
     const step = steps[currentStep];
     return (
       <div className="teaching-card anim-fade-in" key={`exp-${currentStep}`}>
+        {videoLinks[concept] && (
+          <div className="teaching-card__videos">
+            <strong>If not confident — watch:</strong>
+            <ul>
+              {videoLinks[concept].map((v, i) => (
+                <li key={i}><a href={v.url} target="_blank" rel="noopener noreferrer">{v.title}</a></li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="teaching-card__header">
           <span className="teaching-card__badge teaching-card__badge--active">
             Explaining
@@ -201,6 +225,17 @@ export default function TeachingCard({ concept, learnerLevel, adaptiveHint, onCo
     const exStep = exampleSteps[currentStep];
     return (
       <div className="teaching-card anim-fade-in" key={`ex-${currentStep}`}>
+        {videoLinks[concept] && (
+          <div className="teaching-card__videos">
+            <strong>If not confident — watch:</strong>
+            <ul>
+              {videoLinks[concept].map((v, i) => (
+                <li key={i}><a href={v.url} target="_blank" rel="noopener noreferrer">{v.title}</a></li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="teaching-card__header">
           <span className="teaching-card__badge teaching-card__badge--example">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -263,6 +298,17 @@ export default function TeachingCard({ concept, learnerLevel, adaptiveHint, onCo
   if (phase === 'checkpoint') {
     return (
       <div className="teaching-card anim-fade-in">
+        {videoLinks[concept] && (
+          <div className="teaching-card__videos">
+            <strong>If not confident — watch:</strong>
+            <ul>
+              {videoLinks[concept].map((v, i) => (
+                <li key={i}><a href={v.url} target="_blank" rel="noopener noreferrer">{v.title}</a></li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="teaching-card__header">
           <span className="teaching-card__badge teaching-card__badge--checkpoint">
             Quick Check
