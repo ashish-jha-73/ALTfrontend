@@ -224,8 +224,9 @@ function App() {
       setFeedback(null);
 
       // Fetch teaching context to decide if teaching card should show
+      let teachCtx = null;
       try {
-        const teachCtx = await fetchTeachingContent({
+        teachCtx = await fetchTeachingContent({
           concept: progress?.progress?.current_concept || 'expressions_foundation',
         });
         setTeachingContext(teachCtx);
@@ -233,6 +234,7 @@ function App() {
       } catch {
         // If teaching endpoint fails, skip teaching card
         setTeachingContext(null);
+        teachCtx = null;
       }
 
       await loadNextQuestion(userId);
