@@ -186,6 +186,9 @@ function App() {
       setDiagnosticResult(result);
       setDiagnosticCompleted(true);
       setLearnerLevel(result.learner_level);
+      if ((result.xp_earned || 0) > 0) {
+        setXpToast({ visible: true, amount: result.xp_earned, key: Date.now() });
+      }
       // Refresh progress after diagnostic
       await loadProgress(userId);
       await loadConceptMap(userId);
