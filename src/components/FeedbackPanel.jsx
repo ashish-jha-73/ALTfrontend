@@ -17,22 +17,25 @@ export default function FeedbackPanel({
   const [localShowStats, setLocalShowStats] = useState(true);
 
   useEffect(() => {
-    if (typeof showStats !== 'undefined') return; 
+    if (typeof showStats !== 'undefined') return;
     try {
-      const v = typeof window !== 'undefined' && window.localStorage.getItem('feedback_show_stats');
-      setLocalShowStats(v === null ? true : v === '1');
+      const stored = (typeof window !== 'undefined') ? window.localStorage.getItem('feedback_show_stats') : null;
+      setLocalShowStats(stored === null ? true : stored === '1');
     } catch (e) {
+      // ignore
     }
   }, [showStats]);
 
   const effectiveShowStats = typeof showStats !== 'undefined' ? showStats : localShowStats;
 
-  function toggleLocalShowStats() {
-    const next = !localShowStats;
-    setLocalShowStats(next);
+  function toggleLocalShowStats(next) {
+    // `next` may be an event or a boolean
+    const value = typeof next === 'boolean' ? next : (next?.target ? next.target.checked : !localShowStats);
+    setLocalShowStats(value);
     try {
-      if (typeof window !== 'undefined') window.localStorage.setItem('feedback_show_stats', next ? '1' : '0');
+      if (typeof window !== 'undefined') window.localStorage.setItem('feedback_show_stats', value ? '1' : '0');
     } catch (e) {
+      // ignore
     }
   }
 
@@ -42,7 +45,7 @@ export default function FeedbackPanel({
       {typeof showStats === 'undefined' && (
         <div className="feedback-screen__toggle" style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 12px' }}>
           <label style={{ cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input type="checkbox" checked={localShowStats} onChange={toggleLocalShowStats} />
+            <input type="checkbox" checked={localShowStats} onChange={(e) => toggleLocalShowStats(e)} />
             <span>Show stats</span>
           </label>
         </div>
@@ -137,7 +140,7 @@ export default function FeedbackPanel({
       </div>
 
       {/* Stats Row (optional) */}
-      {showStats && (
+      {effectiveShowStats && (
         <div className="feedback-screen__stats">
           <div className="feedback-screen__stat">
             <span className="feedback-screen__stat-value">{Number(feedback.reward_score || 0).toFixed(2)}</span>
