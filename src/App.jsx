@@ -133,7 +133,7 @@ function App() {
         setError('');
         const id = await loadProgress(userId);
         await loadConceptMap(id);
-
+        // heck is done
         // Check if diagnostic is needed
         try {
           const diagData = await fetchDiagnostic();
