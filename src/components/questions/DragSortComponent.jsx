@@ -1,13 +1,22 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export default function DragSortComponent({ items = [], onChange, disabled }) {
   const [order, setOrder] = useState(items.slice());
   const dragIndex = useRef(null);
 
+  useEffect(() => {
+    setOrder(items.slice());
+  }, [items]);
+
   function handleDragStart(e, idx) {
     if (disabled) return;
     dragIndex.current = idx;
-    e.dataTransfer.effectAllowed = 'move';
+    try {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(idx));
+    } catch (err) {
+      // some environments may restrict dataTransfer; fallback to ref
+    }
   }
 
   function handleDragOver(e, idx) {
@@ -24,8 +33,10 @@ export default function DragSortComponent({ items = [], onChange, disabled }) {
     setOrder(next);
   }
 
-  function handleDrop() {
+  function handleDrop(e) {
+    if (e && e.preventDefault) e.preventDefault();
     if (disabled) return;
+    // reset drag index
     dragIndex.current = null;
     // Build seed-format: order: [id1,id2,...]
     const ids = order.map((it) => {
@@ -42,12 +53,12 @@ export default function DragSortComponent({ items = [], onChange, disabled }) {
       <div className="drag-sort__list">
         {order.map((it, idx) => (
           <div
-            key={typeof it === 'string' ? it : `${idx}-${String(it)}`}
+            key={typeof it === 'string' ? `${it}-${idx}` : `${idx}-${String(it)}`}
             className="drag-sort__item"
             draggable={!disabled}
             onDragStart={(e) => handleDragStart(e, idx)}
             onDragOver={(e) => handleDragOver(e, idx)}
-            onDrop={() => handleDrop()}
+            onDrop={(e) => handleDrop(e)}
           >
             <span className="drag-sort__handle">⋮⋮</span>
             <span className="drag-sort__text">{it}</span>

@@ -18,7 +18,7 @@ export default function QuestionScreen({
   feedback,
 }) {
   const [selectedAnswer, setSelectedAnswer] = useState('');
-  const [confidence, setConfidence] = useState('medium');
+  const [confidence, setConfidence] = useState('');
   const [attemptsCount, setAttemptsCount] = useState(1);
   const [revealedHints, setRevealedHints] = useState(0);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
