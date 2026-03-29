@@ -96,49 +96,34 @@ export default function QuestionScreen({
         );
       case 'drag_sort':
         const handleDragResult = (result) => {
-          setSelectedAnswer(JSON.stringify(result));
-
           // determine total items (ignore category markers like 'CAT:...')
           const itemsCount = (question.options || []).filter((it) => typeof it === 'string' && !it.startsWith('CAT:')).length;
           const assignedCount = Object.values(result).flat().length;
 
+          // Build a formatted string that matches seed format: "CatA: [1,4] | CatB: [2,5]"
+          const expectedRaw = question.correct_answer || '';
+          const catsFromExpected = expectedRaw ? expectedRaw.split('|').map((p) => (p.split(':')[0] || '').trim()).filter(Boolean) : [];
+          const catsOrder = (catsFromExpected.length > 0) ? catsFromExpected : (question.categories && question.categories.length ? question.categories : Object.keys(result));
+
+          const formatted = catsOrder.map((cat) => {
+            const items = (result[cat] || []).map((it) => {
+              if (typeof it !== 'string') return String(it);
+              const m = it.split(':')[0];
+              return m.trim();
+            });
+            return `${cat}: [${items.join(',')}]`;
+          }).join(' | ');
+
+          // If all items placed, set selected answer to formatted string (backend expects this format)
           if (itemsCount > 0 && assignedCount === itemsCount) {
-            // try parse expected answer from question.correct_answer
-            const expectedRaw = question.correct_answer || '';
-            const expected = {};
-            expectedRaw.split('|').forEach((part) => {
-              const [cat, vals] = part.split(':');
-              if (!cat) return;
-              const name = cat.trim();
-              const nums = (vals || '').match(/\d+/g) || [];
-              expected[name] = nums.map((n) => n.toString());
-            });
+            setSelectedAnswer(formatted);
 
-            // normalize actual result: map items like '1:5xy' -> '1'
-            const actual = {};
-            Object.keys(result).forEach((cat) => {
-              actual[cat] = (result[cat] || []).map((it) => {
-                if (typeof it !== 'string') return String(it);
-                const m = it.split(':')[0];
-                return m.trim();
-              });
-            });
-
-            // compare expected vs actual by category name
-            let ok = true;
-            Object.keys(expected).forEach((cat) => {
-              const exp = expected[cat] || [];
-              const act = actual[cat] || [];
-              if (exp.length !== act.length) ok = false;
-              else {
-                const s1 = exp.slice().sort().join(',');
-                const s2 = act.slice().sort().join(',');
-                if (s1 !== s2) ok = false;
-              }
-            });
-
+            // compare to expected (normalize whitespace)
+            const norm = (s) => (s || '').replace(/\s+/g, '').toLowerCase();
+            const ok = norm(formatted) === norm(expectedRaw);
             setDragCorrect(ok);
           } else {
+            setSelectedAnswer('');
             setDragCorrect(null);
           }
         };
