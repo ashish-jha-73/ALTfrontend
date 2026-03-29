@@ -14,13 +14,13 @@ export default function FeedbackPanel({
   showStats,
 }) {
   if (!feedback) return null;
-  const [localShowStats, setLocalShowStats] = useState(true);
+  const [localShowStats, setLocalShowStats] = useState(false);
 
   useEffect(() => {
     if (typeof showStats !== 'undefined') return;
     try {
       const stored = (typeof window !== 'undefined') ? window.localStorage.getItem('feedback_show_stats') : null;
-      setLocalShowStats(stored === null ? true : stored === '1');
+      setLocalShowStats(stored === null ? false : stored === '1');
     } catch (e) {
       // ignore
     }
