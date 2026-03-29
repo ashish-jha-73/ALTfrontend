@@ -41,10 +41,21 @@ function getStatusIcon(status) {
   );
 }
 
+import { useState, useEffect } from 'react';
+
 export default function ConceptMapView({ conceptMap, onStart }) {
   const nodes = conceptMap?.nodes || [];
   const xp = conceptMap?.xp || 0;
   const totalScore = conceptMap?.total_score || 0;
+  const [showScore, setShowScore] = useState(false);
+  useEffect(() => {
+    try {
+      const s = (typeof window !== 'undefined') ? window.localStorage.getItem('show_score') : null;
+      setShowScore(s === '1');
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   return (
     <div className="concept-map anim-fade-in">
@@ -74,19 +85,21 @@ export default function ConceptMapView({ conceptMap, onStart }) {
             <span className="concept-map__score-label">Experience Points</span>
           </div>
         </div>
-        <div className="concept-map__score-card">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--clr-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 6 9 6 9zM18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 18 9 18 9z" />
-            <path d="M4 22h16" />
-            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-          </svg>
-          <div>
-            <span className="concept-map__score-value">{totalScore}</span>
-            <span className="concept-map__score-label">Total Score</span>
+        {showScore && (
+          <div className="concept-map__score-card">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--clr-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 6 9 6 9zM18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 18 9 18 9z" />
+              <path d="M4 22h16" />
+              <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+              <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+              <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+            </svg>
+            <div>
+              <span className="concept-map__score-value">{totalScore}</span>
+              <span className="concept-map__score-label">Total Score</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Concept Path */}

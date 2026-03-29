@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import MasteryBar from './MasteryBar';
 
 const conceptLabels = {
@@ -12,6 +13,15 @@ export default function EndScreen({ summary, onContinue }) {
   const strengths = summary?.strengths || [];
   const weaknesses = summary?.weaknesses || [];
   const behavioral = summary?.behavioral_insights || {};
+  const [showScore, setShowScore] = useState(false);
+  useEffect(() => {
+    try {
+      const s = (typeof window !== 'undefined') ? window.localStorage.getItem('show_score') : null;
+      setShowScore(s === '1');
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   return (
     <div className="end-screen anim-fade-in">
@@ -34,10 +44,12 @@ export default function EndScreen({ summary, onContinue }) {
           <span className="end-screen__score-value">{summary?.xp || 0}</span>
           <span className="end-screen__score-label">Total XP</span>
         </div>
-        <div className="end-screen__score-card end-screen__score-card--score">
-          <span className="end-screen__score-value">{summary?.total_score || 0}</span>
-          <span className="end-screen__score-label">Total Score</span>
-        </div>
+        {showScore && (
+          <div className="end-screen__score-card end-screen__score-card--score">
+            <span className="end-screen__score-value">{summary?.total_score || 0}</span>
+            <span className="end-screen__score-label">Total Score</span>
+          </div>
+        )}
       </div>
 
       {/* Mastery Bars */}

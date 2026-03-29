@@ -5,6 +5,13 @@ const conceptLabels = {
   simplification_arena: 'Simplification',
   equation_dojo: 'Equations',
   word_problem_lab: 'Word Problems',
+  multiplication_basic: 'Multiplication Basics',
+  multiplication_expressions: 'Multiplication & Identities',
+  equation_basics: "Equation Basics",
+  equation_solving: "Solving Equations",
+  advanced_equations: "Advanced Equations",
+  word_problem_basic: "Word Problems",
+  word_problem_advanced: "Advanced Word Problems"
 };
 
 function getDifficultyColor(level) {
@@ -63,7 +70,7 @@ export default function Sidebar({
           <polyline points="22 8.5 12 15.5 2 8.5" />
         </svg>
         <div>
-          <span className="sidebar__logo-title">Algebra Quest</span>
+          <span className="sidebar__logo-title">TEAM GIFT</span>
           <span className="sidebar__logo-sub">Adaptive Tutor</span>
         </div>
       </div>

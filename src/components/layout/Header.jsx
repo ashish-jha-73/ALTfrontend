@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import ProgressBar from '../ProgressBar';
 import CognitiveLoadIndicator from '../CognitiveLoadIndicator';
 
@@ -12,6 +13,26 @@ export default function Header({
   const xp = progress?.progress?.xp || conceptMap?.xp || 0;
   const totalScore = progress?.progress?.total_score || conceptMap?.total_score || 0;
   const loadScore = progress?.learner_model?.cognitive_state?.load_score || 0;
+
+  const [showScore, setShowScore] = useState(false);
+  useEffect(() => {
+    try {
+      const stored = (typeof window !== 'undefined') ? window.localStorage.getItem('show_score') : null;
+      setShowScore(stored === '1');
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  function toggleShowScore(e) {
+    const next = typeof e === 'boolean' ? e : (e?.target ? e.target.checked : !showScore);
+    setShowScore(next);
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem('show_score', next ? '1' : '0');
+    } catch (err) {
+      // ignore
+    }
+  }
 
   const currentConcept = questionPayload?.question?.concept ||
     questionPayload?.lesson?.concept ||
@@ -52,13 +73,21 @@ export default function Header({
           </svg>
           <span>{xp}</span>
         </div>
+        {showScore && (
+          <div className="header__stat-badge header__stat-badge--score">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--clr-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span>{totalScore}</span>
+          </div>
+        )}
 
-        <div className="header__stat-badge header__stat-badge--score">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--clr-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-          <span>{totalScore}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8 }}>
+          <label style={{ cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input type="checkbox" checked={showScore} onChange={(e) => toggleShowScore(e)} />
+            <span>Show Score</span>
+          </label>
         </div>
       </div>
     </header>

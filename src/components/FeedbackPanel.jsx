@@ -15,6 +15,7 @@ export default function FeedbackPanel({
 }) {
   if (!feedback) return null;
   const [localShowStats, setLocalShowStats] = useState(false);
+  const [showScore, setShowScore] = useState(false);
 
   useEffect(() => {
     if (typeof showStats !== 'undefined') return;
@@ -25,6 +26,15 @@ export default function FeedbackPanel({
       // ignore
     }
   }, [showStats]);
+
+  useEffect(() => {
+    try {
+      const s = (typeof window !== 'undefined') ? window.localStorage.getItem('show_score') : null;
+      setShowScore(s === '1');
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   const effectiveShowStats = typeof showStats !== 'undefined' ? showStats : localShowStats;
 
@@ -109,8 +119,8 @@ export default function FeedbackPanel({
         </div>
       )}
 
-      {/* Meta Feedback */}
-      {feedback.meta_feedback?.length > 0 && (
+      {/* Meta Feedback: show only when there is meta feedback AND the answer was incorrect */}
+      {feedback.meta_feedback?.length > 0 && !feedback.correctness && (
         <div className="feedback-screen__card">
           <h3>Learning Insights</h3>
           <ul className="feedback-screen__insights">
@@ -142,10 +152,12 @@ export default function FeedbackPanel({
       {/* Stats Row (optional) */}
       {effectiveShowStats && (
         <div className="feedback-screen__stats">
-          <div className="feedback-screen__stat">
-            <span className="feedback-screen__stat-value">{Number(feedback.reward_score || 0).toFixed(2)}</span>
-            <span className="feedback-screen__stat-label">Reward</span>
-          </div>
+          {showScore && (
+            <div className="feedback-screen__stat">
+              <span className="feedback-screen__stat-value">{Number(feedback.reward_score || 0).toFixed(2)}</span>
+              <span className="feedback-screen__stat-label">Reward</span>
+            </div>
+          )}
           <div className="feedback-screen__stat">
             <span className="feedback-screen__stat-value">{feedback.cognitive_load || '-'}</span>
             <span className="feedback-screen__stat-label">Cog. Load</span>
