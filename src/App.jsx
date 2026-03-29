@@ -3,7 +3,6 @@ import './App.css';
 import AuthScreen from './components/AuthScreen';
 import DiagnosticScreen from './components/DiagnosticScreen';
 import TeachingCard from './components/TeachingCard';
-import VideoLinksBar from './components/VideoLinksBar';
 import ConceptMapView from './components/ConceptMapView';
 import QuestionScreen from './components/QuestionScreen';
 import LessonScreen from './components/LessonScreen';
@@ -101,67 +100,8 @@ function App() {
   }
 
   async function loadNextQuestion(activeUserId) {
-    const allowedQTypes = ['mcq', 'fill_in_the_blank', 'drag_and_drop'];
-    let payload = await fetchNextQuestion({ userId: activeUserId, userName });
-
-    if (!payload) {
-      setQuestionPayload(null);
-      setRetryEnabled(false);
-      setPendingRetryAttempts(1);
-      return;
-    }
-
-    // If this is a lesson, return immediately
-    if (payload.activity_type === 'lesson') {
-      setQuestionPayload(payload);
-      setRetryEnabled(false);
-      setPendingRetryAttempts(1);
-      return;
-    }
-
-    // For question activity, inspect the backend question_type
-    const q = payload.question || {};
-    const qtype = (q.question_type || '').toLowerCase();
-
-    if (allowedQTypes.includes(qtype)) {
-      setQuestionPayload(payload);
-      setRetryEnabled(false);
-      setPendingRetryAttempts(1);
-      return;
-    }
-
-    // Unsupported type: try to find an MCQ of same level first, then any MCQ
-    const targetLevel = q.level || null;
-    let attempts = 0;
-    let found = null;
-    // First search for MCQ with same level
-    while (attempts < 10) {
-      const next = await fetchNextQuestion({ userId: activeUserId, userName });
-      attempts += 1;
-      if (!next || next.activity_type !== 'question') continue;
-      const nq = next.question || {};
-      if ((nq.question_type || '').toLowerCase() === 'mcq' && (targetLevel === null || nq.level === targetLevel)) {
-        found = next;
-        break;
-      }
-    }
-
-    // If not found, try again to find any MCQ
-    if (!found) {
-      attempts = 0;
-      while (attempts < 10) {
-        const next = await fetchNextQuestion({ userId: activeUserId, userName });
-        attempts += 1;
-        if (!next || next.activity_type !== 'question') continue;
-        const nq = next.question || {};
-        if ((nq.question_type || '').toLowerCase() === 'mcq') {
-          found = next;
-          break;
-        }
-      }
-    }
-
-    setQuestionPayload(found || payload);
+    const payload = await fetchNextQuestion({ userId: activeUserId, userName });
+    setQuestionPayload(payload);
     setRetryEnabled(false);
     setPendingRetryAttempts(1);
   }
@@ -193,7 +133,6 @@ function App() {
         setError('');
         const id = await loadProgress(userId);
         await loadConceptMap(id);
-        // heck is done
         // Check if diagnostic is needed
         try {
           const diagData = await fetchDiagnostic();
@@ -299,7 +238,7 @@ function App() {
 
       await loadNextQuestion(userId);
 
-      // If teaching context was fetched, show teaching card first; otherwise go to question
+      // Show teaching first when we have teaching content; otherwise go to question
       if (teachCtx) {
         setScreen('teaching');
       } else {
@@ -560,9 +499,6 @@ function App() {
           )}
         </div>
       </div>
-
-      {/* Persistent video links bar for current concept */}
-      <VideoLinksBar concept={teachingContext?.concept || progress?.progress?.current_concept} />
 
       {/* XP Toast */}
       {xpToast.visible && (
