@@ -100,31 +100,45 @@ export default function QuestionScreen({
           const itemsCount = (question.options || []).filter((it) => typeof it === 'string' && !it.startsWith('CAT:')).length;
           const assignedCount = Object.values(result).flat().length;
 
-          // Build a formatted string that matches seed format: "CatA: [1,4] | CatB: [2,5]"
-          const expectedRaw = question.correct_answer || '';
-          const catsFromExpected = expectedRaw ? expectedRaw.split('|').map((p) => (p.split(':')[0] || '').trim()).filter(Boolean) : [];
-          const catsOrder = (catsFromExpected.length > 0) ? catsFromExpected : (question.categories && question.categories.length ? question.categories : Object.keys(result));
+          // If only one item has been placed, treat it like an MCQ selection:
+          // extract the leading id before ':' and set as selectedAnswer so submit behaves the same as MCQ
+          if (assignedCount === 1) {
+            let singleItem = Object.values(result).flat()[0];
+            let value = '';
+            if (typeof singleItem === 'string') {
+              value = singleItem.split(':')[0].trim();
+            } else {
+              value = String(singleItem);
+            }
+            setSelectedAnswer(value);
 
-          const formatted = catsOrder.map((cat) => {
-            const items = (result[cat] || []).map((it) => {
-              if (typeof it !== 'string') return String(it);
-              const m = it.split(':')[0];
-              return m.trim();
-            });
-            return `${cat}: [${items.join(',')}]`;
-          }).join(' | ');
-
-          // If all items placed, set selected answer to formatted string (backend expects this format)
-          if (itemsCount > 0 && assignedCount === itemsCount) {
-            setSelectedAnswer(formatted);
-
-            // compare to expected (normalize whitespace)
-            const norm = (s) => (s || '').replace(/\s+/g, '').toLowerCase();
-            const ok = norm(formatted) === norm(expectedRaw);
-            setDragCorrect(ok);
+            // compare to expected (allow numeric or string match)
+            const expected = (question.correct_answer || '').toString().trim();
+            setDragCorrect(expected ? value === expected : null);
           } else {
-            setSelectedAnswer('');
-            setDragCorrect(null);
+            // For multi-item tasks, build the seed-format string when all placed
+            const expectedRaw = question.correct_answer || '';
+            const catsFromExpected = expectedRaw ? expectedRaw.split('|').map((p) => (p.split(':')[0] || '').trim()).filter(Boolean) : [];
+            const catsOrder = (catsFromExpected.length > 0) ? catsFromExpected : (question.categories && question.categories.length ? question.categories : Object.keys(result));
+
+            const formatted = catsOrder.map((cat) => {
+              const items = (result[cat] || []).map((it) => {
+                if (typeof it !== 'string') return String(it);
+                const m = it.split(':')[0];
+                return m.trim();
+              });
+              return `${cat}: [${items.join(',')}]`;
+            }).join(' | ');
+
+            if (itemsCount > 0 && assignedCount === itemsCount) {
+              setSelectedAnswer(formatted);
+              const norm = (s) => (s || '').replace(/\s+/g, '').toLowerCase();
+              const ok = norm(formatted) === norm(expectedRaw);
+              setDragCorrect(ok);
+            } else {
+              setSelectedAnswer('');
+              setDragCorrect(null);
+            }
           }
         };
 

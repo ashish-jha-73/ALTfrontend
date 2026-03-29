@@ -237,8 +237,10 @@ function App() {
 
       await loadNextQuestion(userId);
 
-      // Show teaching first for lessons or if this is a new concept session
-      if (!showTeaching) {
+      // If teaching context was fetched, show teaching card first; otherwise go to question
+      if (teachCtx) {
+        setScreen('teaching');
+      } else {
         setScreen('question');
       }
     } catch (err) {
