@@ -92,7 +92,17 @@ export default function QuestionScreen({
           <FillBlankComponent
             questionText={question.question_text}
             answer={selectedAnswer}
-            onChange={setSelectedAnswer}
+            onChange={(formatted) => {
+              setSelectedAnswer(formatted);
+              if (formatted === null || formatted === undefined || formatted === '') {
+                setDragCorrect(null);
+                return;
+              }
+              const toStr = (v) => (typeof v === 'string' ? v : (v == null ? '' : JSON.stringify(v)));
+              const norm = (s) => toStr(s).replace(/\s+/g, '').toLowerCase();
+              const expectedRaw = question.correct_answer || '';
+              setDragCorrect(norm(formatted) === norm(expectedRaw));
+            }}
             disabled={loading || submitted}
           />
         );
